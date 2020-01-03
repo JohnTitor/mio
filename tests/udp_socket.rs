@@ -757,10 +757,7 @@ fn send_recv_udp(mut tx: UdpSocket, mut rx: UdpSocket, connected: bool) {
             if event.is_readable() {
                 if let LISTENER = event.token() {
                     debug!("We are receiving a datagram now...");
-                    let data = &mut handler.rx_buf.bytes_mut();
-                    let data = unsafe {
-                        std::slice::from_raw_parts_mut(data.as_mut_ptr() as *mut u8, data.len())
-                    };
+                    let data = &mut handler.rx_buf.as_mut();
                     let cnt = if !handler.connected {
                         handler.rx.recv_from(data).unwrap().0
                     } else {
@@ -770,6 +767,7 @@ fn send_recv_udp(mut tx: UdpSocket, mut rx: UdpSocket, connected: bool) {
                     unsafe {
                         handler.rx_buf.advance_mut(cnt);
                     }
+                    println!("{:?}", str::from_utf8(handler.rx_buf.as_ref()).unwrap());
                     assert!(str::from_utf8(handler.rx_buf.as_ref()).unwrap() == handler.msg);
                     handler.shutdown = true;
                 }
@@ -891,9 +889,7 @@ impl UdpHandler {
     fn handle_read(&mut self, _: &Registry, token: Token) {
         if let LISTENER = token {
             debug!("We are receiving a datagram now...");
-            let data = &mut self.rx_buf.bytes_mut();
-            let data =
-                unsafe { std::slice::from_raw_parts_mut(data.as_mut_ptr() as *mut u8, data.len()) };
+            let data = &mut self.rx_buf.as_mut();
             match self.rx.recv_from(data) {
                 Ok((cnt, addr)) => {
                     unsafe {
@@ -903,6 +899,7 @@ impl UdpHandler {
                 }
                 res => panic!("unexpected result: {:?}", res),
             }
+            println!("{:?}", str::from_utf8(self.rx_buf.as_ref()).unwrap());
             assert!(str::from_utf8(self.rx_buf.as_ref()).unwrap() == self.msg);
             self.shutdown = true;
         }
